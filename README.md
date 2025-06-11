@@ -94,6 +94,7 @@ All screens communicate using the browser's `localStorage` and JavaScript event 
 
 ## 📽 Demo Video  
 
+🎥 [Click here to watch the demo video](https://drive.google.com/file/d/1oTi7egelMgedlBIyr7KUAM6mgne2OJsy/view?usp=sharing)
 Will walk through all screens, interactions, and emergency syncing simulation.
 
 ---
