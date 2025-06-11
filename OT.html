@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>OT Schedule Display</title>
+<style>
+  body {
+    font-family: 'Courier New', monospace;
+    background: #000814;
+    color: #00ffcc;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 30px;
+    margin: 0;
+  }
+  #clock, #date {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #7fdbff;
+  }
+  h2 {
+    margin: 20px 0 10px;
+    text-transform: uppercase;
+  }
+  table {
+    width: 90%;
+    max-width: 700px;
+font-weight: bold;
+border: 1px solid #00ffcc33;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }
+  th, td {
+    padding: 12px;
+    border-bottom: 2px solid #00ffcc33;
+border-top: 2px solid #00ffcc33;
+border-right: 2px solid #00ffcc33;
+border-left: 2px solid #00ffcc33;
+    text-align: left;
+  }
+  th {
+    background: #001f3f;
+    color: #00ffcc;
+  }
+  .room {
+    color: #7fdbff;
+  }
+   #emerBanner {
+    display: none;
+    font-weight: bold;
+    text-align: center;
+    padding: 15px;
+    margin: 20px 0;
+    border-radius: 10px;
+  }
+  .blueAlert {
+    width:100%;
+    background: #007bff;
+    color: #fff;
+    animation: blink 1s infinite;
+  }
+  .redAlert {
+    width:100%;
+    background: #dc3545;
+    color: #fff;
+    animation: blink 1s infinite;
+  }
+  @keyframes blink {
+    0% { opacity: 1; }
+    50% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+</style>
+</head>
+<body>
+<div id="clock"></div>
+<div id="date"></div>
+
+<div id="emerBanner"></div>
+
+<h2 id="titleLabel">TODAY’S OT SCHEDULE</h2>
+
+<table id="otTable">
+  <thead>
+    <tr>
+      <th id="thTime">TIME</th>
+      <th id="thPatient">PATIENT / CASE</th>
+      <th id="thDept">DEPT</th>
+      <th id="thRoom">ROOM</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>09:00</td><td>ACL Repair – Mr. Rao</td><td>Ortho</td><td class="room">OT-1</td></tr>
+    <tr><td>10:30</td><td>Cholecystectomy – Ms. Khan</td><td>General</td><td class="room">OT-3</td></tr>
+    <tr><td>11:45</td><td>Emergency CABG – Mr. D’Souza</td><td>Cardio</td><td class="room">OT-2</td></tr>
+    <tr><td>14:00</td><td>Knee Replacement – Mrs. Shetty</td><td>Ortho</td><td class="room">OT-1</td></tr>
+    <tr><td>16:00</td><td>ENT Endoscopy – Master Arun</td><td>ENT</td><td class="room">OT-4</td></tr>
+  </tbody>
+</table>
+
+<script>
+function tick() {
+  const n = new Date();
+  clock.textContent = n.toLocaleTimeString();
+  date.textContent = n.toLocaleDateString(undefined, {
+    weekday: 'short', year: 'numeric', month: 'short', day: 'numeric'
+  });
+}
+const clock = document.getElementById('clock');
+const date = document.getElementById('date');
+tick();
+setInterval(tick, 1000);
+
+function parseAlert(raw) {
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    return {
+      msg: raw,
+      color: raw.includes('Blue') ? 'blueAlert' : 'redAlert'
+    };
+  }
+}
+function showBanner(data) {
+  const b = document.getElementById('emerBanner');
+  if (!data) {
+    b.style.display = 'none';
+    return;
+  }
+  b.textContent = data.msg;
+  b.className = data.color;
+  b.style.display = 'block';
+}
+showBanner(parseAlert(localStorage.getItem('emergencyAlert')));
+window.addEventListener('storage', e => {
+  if (e.key === 'emergencyAlert') {
+    showBanner(parseAlert(e.newValue));
+  }
+});
+</script>
+</body>
+</html>

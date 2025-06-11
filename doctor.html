@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Doctor – Cardiology</title>
+<style>
+  body {
+    font-family: 'Courier New', monospace;
+    background: #001122;
+    color: #00ffcc;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0;
+    padding: 30px;
+  }
+  #datetime {
+    font-size: 18px;
+font-weight: bold;
+    color: #80fff3;
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  h1 {
+    margin: 0 0 20px;
+  }
+  .panel {
+    background: #001f3f;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 0 12px #00ffcc;
+    width: 90%;
+    max-width: 600px;
+    text-align: center;
+  }
+  #alert {
+    display: none;
+    margin-top: 15px;
+    font-weight: bold;
+    padding: 12px;
+    border-radius: 8px;
+    animation: blink 1s steps(2, start) infinite;
+    text-align: center;
+  }
+  .red {
+    background: #dc3545;
+    color: #fff;
+    box-shadow: 0 0 12px #dc3545;
+  }
+  .blue {
+    background: #007bff;
+    color: #fff;
+    box-shadow: 0 0 12px #007bff;
+  }
+  @keyframes blink {
+    to { visibility: hidden }
+  }
+  button {
+    padding: 10px 20px;
+    margin-top: 15px;
+    border: 0;
+    border-radius: 8px;
+    background: #007bff;
+    color: #fff;
+    cursor: pointer;
+  }
+button:hover {
+  opacity: 0.8;
+  transform: scale(1.05);
+  transition: 0.3s ease-in-out;
+}
+  table {
+    width: 100%;
+    margin-top: 10px;
+    border-collapse: collapse;
+    color: #7fdbff;
+  }
+  th, td {
+    border-bottom: 1px solid #003;
+    padding: 8px;
+    text-align: left;
+  }
+  .stock-in { color: #00ff00 }
+  .stock-low { color: #ffcc00 }
+  .stock-out { color: #ff4444 }
+</style>
+</head>
+<body>
+
+<div id="datetime"></div>
+
+<h1>Cardiology – Doctor Screen</h1>
+
+<div class="panel">
+  <h2 id="tokenTxt">Current Token: 34</h2>
+  <button onclick="nextToken()">Next Token</button>
+  <button onclick="clearCall()" style="background:#6c757d">Clear</button>
+
+  <table>
+    <tr><th>Patient Detail (mock)</th></tr>
+    <tr><td>Name: Ramesh Shetty</td></tr>
+    <tr><td>Age: 57</td></tr>
+    <tr><td>Complaint: Chest pain</td></tr>
+  </table>
+
+  <h3 style="margin-top:20px">Drug Stock</h3>
+  <table id="drugTbl" style="display:none"></table>
+
+  <div id="alert"></div>
+</div>
+
+<script>
+function updateClock(){
+  const now = new Date();
+  const dd = String(now.getDate()).padStart(2, '0');
+  const mm = String(now.getMonth()+1).padStart(2, '0');
+  const yyyy = now.getFullYear();
+  const date = `${dd}-${mm}-${yyyy}`;
+  const time = now.toLocaleTimeString();
+  document.getElementById('datetime').textContent = `${date} | ${time}`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+function refreshToken(){
+  const v = localStorage.getItem('cardiologyToken') || '--';
+  tokenTxt.textContent = 'Current Token: ' + v;
+}
+function nextToken(){
+  let v = +localStorage.getItem('cardiologyToken') || 0;
+  v++;
+  localStorage.setItem('cardiologyToken', String(v));
+  refreshToken();
+
+  const notice = { dept: 'Cardiology', token: v, cleared: false, ts: Date.now() };
+  localStorage.setItem('callNotice', JSON.stringify(notice));
+  window.dispatchEvent(new StorageEvent('storage', { key: 'callNotice', newValue: JSON.stringify(notice) }));
+}
+function clearCall(){
+  const raw = localStorage.getItem('callNotice');
+  if (!raw) return;
+  const n = JSON.parse(raw);
+  if (n.dept !== 'Cardiology') return;
+  n.cleared = true;
+  localStorage.setItem('callNotice', JSON.stringify(n));
+  window.dispatchEvent(new StorageEvent('storage', { key: 'callNotice', newValue: JSON.stringify(n) }));
+}
+refreshToken();
+
+function loadStock(){
+  const tbl = drugTbl;
+  const stock = JSON.parse(localStorage.getItem('drugStock') || '{}');
+  tbl.innerHTML = '';
+  if (!Object.keys(stock).length) return;
+  tbl.style.display = 'table';
+  for (const m in stock) {
+    const s = stock[m];
+    const cls = s === 'In Stock' ? 'stock-in' : s === 'Low' ? 'stock-low' : 'stock-out';
+    tbl.insertAdjacentHTML('beforeend', `<tr><td>${m}</td><td class="${cls}">${s}</td></tr>`);
+  }
+}
+loadStock();
+
+const knMap = {
+ "🚨 CODE BLUE – Immediate medical attention needed!":"🚨 ಕೋಡ್ ಬ್ಲೂ – ತ್ವರಿತ ವೈದ್ಯಕೀಯ ಸಹಾಯ ಅಗತ್ಯ!",
+ "🔥 CODE RED – Fire emergency!":"🔥 ಕೋಡ್ ರೆಡ್ – ಬೆಂಕಿ ತುರ್ತು ಪರಿಸ್ಥಿತಿ!"
+};
+const alertDiv = document.getElementById('alert');
+let cur = null, b = 0, en = true;
+function parseA(r){
+  try {
+    const o = JSON.parse(r);
+    return { msg: o.msg, col: o.color === 'blueAlert' ? 'blue' : 'red' };
+  } catch {
+    return { msg: r, col: r.includes('Blue') ? 'blue' : 'red' };
+  }
+}
+function syncAlert(){
+  const raw = localStorage.getItem('emergencyAlert');
+  if (!raw) {
+    alertDiv.style.display = 'none';
+    cur = null;
+    b = 0;
+    return;
+  }
+  const { msg, col } = parseA(raw);
+  if (msg !== cur) {
+    cur = msg;
+    b = 0;
+    en = true;
+  }
+  b++;
+  if (b % 3 === 0) en = !en;
+  alertDiv.textContent = en ? msg : (knMap[msg] || msg);
+  alertDiv.className = col;
+  alertDiv.style.display = 'block';
+}
+syncAlert();
+setInterval(syncAlert, 1000);
+
+window.addEventListener('storage', e => {
+  if (e.key === 'cardiologyToken') refreshToken();
+  if (e.key === 'drugStock' || e.key === 'drugStockFlag') loadStock();
+  if (e.key === 'emergencyAlert') syncAlert();
+});
+</script>
+</body>
+</html>

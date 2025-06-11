@@ -1,0 +1,205 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Patient Display</title>
+  <style>
+    body {
+      font-family: 'Courier New', monospace;
+      background: #000814;
+      color: #00ffcc;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0;
+      padding: 30px;
+    }
+    .header {
+      background: #001f3f;
+      color: #00ffcc;
+      padding: 20px;
+      width: 100%;
+      text-align: center;
+      font-size: 2rem;
+      font-weight: bold;
+      border-radius: 10px;
+      box-shadow: 0 0 10px #00ffcc;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+    #clock, #date {
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #7fdbff;
+    }
+    table {
+      width: 90%;
+      max-width: 700px;
+      border-collapse: collapse;
+      border: 2px solid #00ffcc33;
+      margin-top: 25px;
+    }
+    th, td {
+      padding: 12px;
+      border: 2px solid #00ffcc33;
+      text-align: center;
+      font-size: 1.2rem;
+    }
+    th {
+      background: #001f3f;
+      color: #00ffcc;
+      text-transform: uppercase;
+    }
+
+    .dept { color: #7fdbff }
+    #alertBanner {
+      display: none;
+      margin-top: 30px;
+      font-weight: bold;
+      padding: 15px;
+      border-radius: 10px;
+      animation: blink 1s steps(2, start) infinite;
+      text-align: center;
+      width: 90%;
+      max-width: 700px;
+      background: #ff0000;
+      color: #fff;
+      box-shadow: 0 0 15px red;
+    }
+    #alertBanner.blue {
+      background: #005eff;
+      box-shadow: 0 0 15px #00c3ff;
+    }
+    #callBanner {
+      display: none;
+      margin-top: 15px;
+      background: #008000;
+      color: #fff;
+      font-weight: bold;
+      padding: 12px;
+      border-radius: 8px;
+      animation: blink 1s steps(2, start) infinite;
+    }
+    @keyframes blink { to { visibility: hidden } }
+  </style>
+</head>
+<body>
+
+<div id="clock">--:--:--</div>
+<div id="date">-- -- ----</div><br>
+<div class="header" id="tableHeader">NOW SERVING</div>
+
+<table id="deptTable">
+  <thead>
+    <tr><th id="thDept">DEPARTMENT</th><th id="thToken">TOKEN</th><th id="thRoom">ROOM</th></tr>
+  </thead>
+  <tbody id="deptBody"></tbody>
+</table>
+
+<div id="alertBanner"></div>
+<div id="callBanner"></div>
+
+<script>
+const departments = [
+  {en:"Cardiology",kn:"ಕಾರ್ಡಿಯಾಲಜಿ",key:"cardiologyToken",room:{en:"Room No: 202",kn:"ಕೊಠಡಿ ಸಂಖ್ಯೆ: 202"}},
+  {en:"ENT",kn:"ಕಿವಿ ಮೂಗು ಗಂಟಲು",key:"entToken",room:{en:"Room No: 105",kn:"ಕೊಠಡಿ ಸಂಖ್ಯೆ: 105"}},
+  {en:"Ortho",kn:"ಅಸ್ಥಿ ಶಸ್ತ್ರಚಿಕಿತ್ಸೆ",key:"orthoToken",room:{en:"Room No: 310",kn:"ಕೊಠಡಿ ಸಂಖ್ಯೆ: 310"}}
+];
+
+let enLang = true;
+function flipLang() {
+  enLang = !enLang;
+  tableHeader.textContent = enLang ? "NOW SERVING" : "ಸೇವೆಯಲ್ಲಿರುವ ವಿಭಾಗಗಳು";
+  thDept.textContent = enLang ? "DEPARTMENT" : "ವಿಭಾಗ";
+  thToken.textContent = enLang ? "TOKEN" : "ಟೋಕನ್";
+  thRoom.textContent = enLang ? "ROOM" : "ಕೋಣೆ";
+  renderRows();
+}
+setInterval(flipLang, 15000);
+
+const tbody = document.getElementById('deptBody');
+function renderRows() {
+  tbody.innerHTML = '';
+  departments.forEach(dep => {
+    const live = localStorage.getItem(dep.key) || '--';
+    tbody.insertAdjacentHTML('beforeend', `
+      <tr>
+        <td class="dept">${dep[enLang?'en':'kn']}</td>
+        <td>${live}</td>
+        <td>${dep.room[enLang?'en':'kn']}</td>
+      </tr>`);
+  });
+}
+departments.forEach(dep => { localStorage.setItem(dep.key, '1'); });
+renderRows(); setInterval(renderRows, 1000);
+
+const alertDiv = document.getElementById('alertBanner');
+const knMap = {
+  "🚨 CODE BLUE – Immediate medical attention needed!":"🚨 ಕೋಡ್ ಬ್ಲೂ – ತ್ವರಿತ ವೈದ್ಯಕೀಯ ಸಹಾಯ ಅಗತ್ಯ!",
+  "🔥 CODE RED – Fire emergency!":"🔥 ಕೋಡ್ ರೆಡ್ – ಬೆಂಕಿ ತುರ್ತು ಪರಿಸ್ಥಿತಿ!"
+};
+let curAlert = null, alertBlink = 0, alertEN = true;
+
+function syncAlert() {
+  const raw = localStorage.getItem('emergencyAlert');
+  if (!raw) { alertDiv.style.display = 'none'; curAlert = null; return; }
+
+  const { msg, col, sound } = (() => {
+    try {
+      const o = JSON.parse(raw);
+      return { msg: o.msg, col: o.color === 'blueAlert' ? 'blue' : 'red', sound: o.sound };
+    } catch {
+      return { msg: raw, col: raw.includes('Blue') ? 'blue' : 'red', sound: raw.includes('Blue') ? 'blue' : 'red' };
+    }
+  })();
+
+  if (msg !== curAlert) {
+    curAlert = msg;
+    alertBlink = 0;
+    alertEN = true;
+    const soundEl = document.getElementById(sound === 'blue' ? 'blueSound' : 'redSound');
+    if (soundEl) soundEl.play().catch(() => {});
+  }
+
+  alertBlink++;
+  if (alertBlink % 3 === 0) alertEN = !alertEN;
+
+  alertDiv.textContent = alertEN ? msg : (knMap[msg] || msg);
+  alertDiv.className = col === 'blue' ? 'blue' : '';
+  alertDiv.style.display = 'block';
+}
+syncAlert(); setInterval(syncAlert, 1000);
+window.addEventListener('storage', e => { if (e.key === 'emergencyAlert') syncAlert(); });
+
+const callDiv = document.getElementById('callBanner');
+let curCall = null, callBlink = 0, callEN = true;
+
+function syncCall() {
+  const raw = localStorage.getItem('callNotice');
+  if (!raw) { callDiv.style.display = 'none'; curCall = null; return; }
+  const notice = JSON.parse(raw);
+  if (notice.cleared || !departments.some(d => d.en === notice.dept)) {
+    callDiv.style.display = 'none'; curCall = null; return;
+  }
+  if (curCall === null || notice.token !== curCall.token || notice.dept !== curCall.dept) {
+    curCall = notice; callBlink = 0; callEN = true;
+  }
+  callBlink++; if (callBlink % 3 === 0) callEN = !callEN;
+  callDiv.textContent = callEN
+    ? `Token ${notice.token} (${notice.dept}) please proceed to the room no. 202`
+    : `ಟೋಕನ್ ${notice.token} (${notice.dept}) ದಯವಿಟ್ಟು ಕೊಠಡಿ ಸಂಖ್ಯೆ 202 ಕ್ಕೆ ಮುಂದುವರಿಯಿರಿ`;
+  callDiv.style.display = 'block';
+}
+syncCall(); setInterval(syncCall, 1000);
+window.addEventListener('storage', e => { if (e.key === 'callNotice') syncCall(); });
+
+function tick() {
+  const n = new Date();
+  clock.textContent = n.toLocaleTimeString();
+  date.textContent = n.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+}
+tick(); setInterval(tick, 1000);
+</script>
+</body>
+</html>

@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Pharmacy Inventory</title>
+  <style>
+      body {
+      background: #0a0f1a;
+      color: #00ffcc;
+      font-family: 'Courier New', monospace;
+      padding: 40px;
+    }
+
+    #datetime {
+      text-align: center;
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #80fff3;
+    }
+
+    h2 {
+      font-size: 32px;
+      text-align: center;
+      text-transform: uppercase;
+      color: #00ffee;
+      text-shadow: 0 0 8px #00ffee;
+      margin-bottom: 30px;
+    }
+
+    .card {
+      background: #111927;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 0 20px rgba(0, 255, 204, .15);
+      max-width: 800px;
+      margin: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 17px;
+      font-weight: bold;
+      color: #fff;
+    }
+
+    th, td {
+      padding: 14px 10px;
+      border: 1px solid #00ffcc;
+      text-align: left;
+    }
+
+    tr:hover {
+      background: #16222e;
+    }
+
+    .status-badge {
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-weight: bold;
+    }
+
+    .in-stock {
+      background: #004d00;
+      color: #00ff00;
+    }
+
+    .low {
+      background: #665500;
+      color: #ffcc00;
+    }
+
+    .out {
+      background: #660000;
+      color: #ff4444;
+    }
+
+    select, button {
+      padding: 10px;
+      font-size: 15px;
+      font-weight: bold;
+      background: #0d1b2a;
+      color: #00ffcc;
+      border: 1px solid #00ffcc;
+      border-radius: 5px;
+      transition: .3s;
+    }
+
+    select:hover, button:hover {
+      background: #112e42;
+    }
+
+    button {
+      display: block;
+      margin: 30px auto 0;
+    }
+
+    #emerBanner {
+      display: none;
+      font-weight: bold;
+      text-align: center;
+      padding: 15px;
+      margin-bottom: 25px;
+      border-radius: 10px;
+    }
+
+    .blueAlert {
+      background: #007bff;
+      color: #fff;
+      animation: blink 1s infinite;
+    }
+
+    .redAlert {
+      background: #dc3545;
+      color: #fff;
+      animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+      0% { opacity: 1 }
+      50% { opacity: 0 }
+      100% { opacity: 1 }
+    }
+  </style>
+</head>
+<body>
+
+<div id="datetime">Loading time...</div>
+
+<h2>Pharmacy Inventory</h2>
+
+<div id="emerBanner"></div>
+
+<div class="card">
+  <table>
+    <thead>
+      <tr><th>Medicine</th><th>Status</th><th>Update</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Paracetamol</td>
+        <td><span id="parStatus" class="status-badge in-stock">In Stock</span></td>
+        <td>
+          <select onchange="updateStatus('parStatus',this.value)">
+            <option value="in-stock">In Stock</option>
+            <option value="low">Low</option>
+            <option value="out">Out</option>
+          </select>
+        </td>
+      </tr>
+      <tr>
+        <td>Insulin</td>
+        <td><span id="insStatus" class="status-badge low">Low</span></td>
+        <td>
+          <select onchange="updateStatus('insStatus',this.value)">
+            <option value="in-stock">In Stock</option>
+            <option value="low" selected>Low</option>
+            <option value="out">Out</option>
+          </select>
+        </td>
+      </tr>
+      <tr>
+        <td>Amoxicillin</td>
+        <td><span id="amoStatus" class="status-badge out">Out</span></td>
+        <td>
+          <select onchange="updateStatus('amoStatus',this.value)">
+            <option value="in-stock">In Stock</option>
+            <option value="low">Low</option>
+            <option value="out" selected>Out</option>
+          </select>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <button onclick="pushToLocalStorage()">Push Stock Updates</button>
+</div>
+
+<script>
+function updateClock() {
+  const now = new Date();
+  const dd = String(now.getDate()).padStart(2, '0');
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const yyyy = now.getFullYear();
+  const date = `${dd}-${mm}-${yyyy}`;
+  const time = now.toLocaleTimeString();
+  document.getElementById('datetime').textContent = `${date} | ${time}`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+function updateStatus(id, val) {
+  const map = {
+    "in-stock": { txt: "In Stock", cls: "in-stock" },
+    "low":      { txt: "Low",      cls: "low" },
+    "out":      { txt: "Out",      cls: "out" }
+  };
+  const el = document.getElementById(id);
+  if (!map[val]) return;
+  el.textContent = map[val].txt;
+  el.className = 'status-badge ' + map[val].cls;
+  const select = el.closest('tr').querySelector('select');
+  if (select) select.value = val;
+}
+
+function pushToLocalStorage() {
+  const stockValues = {
+    Paracetamol : document.querySelector('#parStatus').closest('tr').querySelector('select').value,
+    Insulin     : document.querySelector('#insStatus').closest('tr').querySelector('select').value,
+    Amoxicillin : document.querySelector('#amoStatus').closest('tr').querySelector('select').value
+  };
+  localStorage.setItem('drugStockValues', JSON.stringify(stockValues));
+
+  const labelMap = {
+    "in-stock": "In Stock",
+    "low": "Low",
+    "out": "Out"
+  };
+  const displayStock = {
+    Paracetamol : labelMap[stockValues.Paracetamol],
+    Insulin     : labelMap[stockValues.Insulin],
+    Amoxicillin : labelMap[stockValues.Amoxicillin]
+  };
+  localStorage.setItem('drugStock', JSON.stringify(displayStock));
+  localStorage.setItem('drugStockFlag', Date.now());
+  alert('Stock updated successfully!');
+}
+
+
+function loadFromLocalStorage() {
+  const stock = JSON.parse(localStorage.getItem('drugStockValues') || '{}');
+  if (stock.Paracetamol) updateStatus('parStatus', stock.Paracetamol);
+  if (stock.Insulin)     updateStatus('insStatus', stock.Insulin);
+  if (stock.Amoxicillin) updateStatus('amoStatus', stock.Amoxicillin);
+}
+loadFromLocalStorage();
+
+function parseAlert(raw) {
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    return {
+      msg: raw,
+      color: raw.includes('Blue') ? 'blueAlert' : 'redAlert'
+    };
+  }
+}
+function showBanner(data) {
+  const b = document.getElementById('emerBanner');
+  if (!data) {
+    b.style.display = 'none';
+    return;
+  }
+  b.textContent = data.msg;
+  b.className = data.color;
+  b.style.display = 'block';
+}
+showBanner(parseAlert(localStorage.getItem('emergencyAlert')));
+window.addEventListener('storage', e => {
+  if (e.key === 'emergencyAlert') {
+    showBanner(parseAlert(e.newValue));
+  }
+});
+</script>
+</body>
+</html>
+

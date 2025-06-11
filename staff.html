@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Staff Dashboard</title>
+  <style>
+    body{
+      font-family:'Courier New',monospace;
+      background:#0a0f1a;
+      color:#00ffcc;
+      margin:50px;
+      padding:20px;
+    }
+    #clock{
+      text-align:center;
+      font-size:1.2rem;
+      font-weight:bold;
+      margin-bottom:20px;
+      color:#00ffcc;
+    }
+
+    #emerBanner{display:none}
+
+    h2{text-align:center;margin-bottom:30px}
+    .dashboard{display:flex;gap:30px;flex-wrap:wrap;justify-content:center}
+    .section{background:#1a1f2b;padding:20px;border-radius:12px;
+             box-shadow:0 4px 15px rgba(0,255,204,.2);width:400px}
+    table{width:100%;border-collapse:collapse;font-size:18px;font-weight:bold;color:#fff}
+    th,td{padding:10px;border-bottom:1px solid #333;text-align:left}
+    .stock-status{font-weight:bold;padding:5px 10px;border-radius:5px}
+    .in-stock{background:#003300;color:#00ff00}
+    .low     {background:#332600;color:#ffcc00}
+    .out     {background:#330000;color:#ff4444}
+
+    .buttons{margin-top:20px;display:flex;justify-content:space-between}
+    .emergency-btn{padding:10px 20px;font-size:16px;border:none;border-radius:8px;
+                   cursor:pointer;color:#fff}
+    .blue {background:#007bff}.red{background:#dc3545}.clear{background:#6c757d}
+  </style>
+</head>
+<body>
+
+<div id="clock"></div>
+<div id="emerBanner"></div>
+
+<div class="dashboard">
+
+  <div class="section">
+    <h3 id="surgHeading">Upcoming Surgeries</h3>
+    <table>
+      <thead>
+        <tr><th id="thToken">Token</th><th id="thDept">Dept</th>
+            <th id="thTime">Time</th><th id="thRoom">Room</th></tr>
+      </thead>
+      <tbody id="surgBody">
+        <tr><td>A123</td><td>Ortho</td><td>10:30 AM</td><td>OT-1</td></tr>
+        <tr><td>B456</td><td>ENT</td><td>11:00 AM</td><td>OT-2</td></tr>
+        <tr><td>C789</td><td>Cardio</td><td>11:30 AM</td><td>OT-3</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h3 id="drugHeading">Drug Stock Alerts</h3>
+    <table>
+      <thead><tr><th id="thMed">Medicine</th><th id="thStatus">Status</th></tr></thead>
+      <tbody>
+        <tr><td>Paracetamol</td><td><span id="parStatus" class="stock-status in-stock">In Stock</span></td></tr>
+        <tr><td>Insulin</td><td><span id="insStatus" class="stock-status low">Low</span></td></tr>
+        <tr><td>Amoxicillin</td><td><span id="amoStatus" class="stock-status out">Out</span></td></tr>
+      </tbody>
+    </table>
+
+    <div class="buttons">
+      <button class="emergency-btn blue"  onclick="triggerAlert('Code Blue')">Code Blue</button>
+      <button class="emergency-btn red"   onclick="triggerAlert('Code Red')">Code Red</button>
+      <button class="emergency-btn clear" onclick="clearAlert()">Clear</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function tick(){
+  const n = new Date();
+  const day = String(n.getDate()).padStart(2, '0');
+  const month = String(n.getMonth() + 1).padStart(2, '0');
+  const year = n.getFullYear();
+  const time = n.toLocaleTimeString();
+  document.getElementById('clock').textContent =
+    `${day}/${month}/${year} – ${time}`;
+}
+tick(); setInterval(tick, 1000);
+
+function triggerAlert(type){
+  const data = {
+    msg: type === 'Code Blue'
+         ? '🚨 CODE BLUE – Immediate medical attention needed!'
+         : '🔥 CODE RED – Fire emergency!',
+    color: type === 'Code Blue' ? 'blueAlert' : 'redAlert',
+    sound: type === 'Code Blue' ? 'blue' : 'red'
+  };
+  localStorage.setItem('emergencyAlert', JSON.stringify(data));
+
+  const soundEl = document.getElementById(data.sound === 'blue' ? 'blueSound' : 'redSound');
+  if (soundEl) soundEl.play().catch(() => {});
+  
+  alert(`${type} triggered`);
+}
+
+function clearAlert(){
+  localStorage.removeItem('emergencyAlert');
+  alert('Alert cleared');
+}
+
+function applyDrugStock(){
+  const stock=JSON.parse(localStorage.getItem('drugStock')||'{}');
+  const colorMap={
+    "In Stock":["in-stock","#003300","#00ff00"],
+    "Low"     :["low"     ,"#332600","#ffcc00"],
+    "Out"     :["out"     ,"#330000","#ff4444"]
+  };
+  function update(id,val){
+    const span=document.getElementById(id);
+    if(!span||!val||!colorMap[val]) return;
+    span.className='stock-status '+colorMap[val][0];
+    span.textContent=val;
+    span.style.background=colorMap[val][1];
+    span.style.color=colorMap[val][2];
+  }
+  update('parStatus',stock.Paracetamol);
+  update('insStatus',stock.Insulin);
+  update('amoStatus',stock.Amoxicillin);
+}
+applyDrugStock();
+window.addEventListener('storage',e=>{
+  if(e.key==='drugStock'||e.key==='drugStockFlag') applyDrugStock();
+});
+</script>
+</body>
+</html>
